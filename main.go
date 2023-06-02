@@ -60,8 +60,8 @@ func initRouters(router *gin.Engine, props *prop_manager.AppProperties) {
 	userRouter := routers.UserRouter{Gin: router, StatsManager: &statManager}
 	userRouter.Init()
 
-	// userRouter := routers.Aukt{Gin: router, StatsManager: &statManager}
-	// userRouter.Init()
+	AuktRouter := routers.Aukt{Gin: router, StatsManager: &statManager}
+	AuktRouter.Init()
 
 	sysUserRouter := routers.SysUserRouter{Gin: router, StatsManager: &statManager}
 	sysUserRouter.Init()

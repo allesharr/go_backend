@@ -16,19 +16,23 @@ type Aukt struct {
 }
 
 type Aukt_Table_Row struct {
-	Number     int    `gorm:"column:number" json:"number"`
+	Number     string `gorm:"column:number" json:"number"`
 	Seller     string `gorm:"column:seller" json:"seller"`
 	Object     string `gorm:"column:object" json:"object"`
 	WhoGaveMax string `gorm:"column:whogavemax" json:"WhoGaveMax"`
 	Money      int    `gorm:"column:money" json:"money"`
-	TimeToOut  string `gorm:"column:timetoout" json:"timeToOut"`
+	TimeToOut  int    `gorm:"column:timetoout" json:"timeToOut"`
 	IsActive   bool   `gorm:"column:isactive" json:"isActive"`
+}
+
+func (Aukt_Table_Row) TableName() string {
+	return "aukst"
 }
 
 // var rows []Aukt_Table_Row = make([]Aukt_Table_Row, 0)
 
 func (n *Aukt) Init() {
-	n.Gin.GET("/aukt", n.Aukt_All)
+	n.Gin.GET("/get_table_data", n.Aukt_All)
 	n.Gin.GET("/aukt/:id", n.Aukt_By_ID)
 }
 
@@ -36,7 +40,6 @@ func (n *Aukt) Aukt_All(c *gin.Context) {
 	var current_rows []Aukt_Table_Row
 	// db.GetConection().Model(&api.SysUser{}).Where("id = ? AND session_key = ?", requestObject.ID, requestObject.SessionKey).Limit(1).Find(&sysUserList)
 	db.GetConection().Model(&Aukt_Table_Row{}).Where("is_active = ?", true).Find(&current_rows)
-
 	c.JSON(http.StatusOK, current_rows)
 }
 
