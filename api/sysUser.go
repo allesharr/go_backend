@@ -11,7 +11,7 @@ import (
 )
 
 type SysUser struct {
-	ID                  uint        `json:"id"`
+	ID                  uint        `gorm:"primaryKey" json:"id"`
 	Login               string      `gorm:"column:login" json:"login"`
 	PasswordHash        string      `gorm:"column:password_hash" json:"password_hash"`
 	SessionKey          null.String `gorm:"column:session_key" json:"session_key"`

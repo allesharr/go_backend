@@ -23,6 +23,7 @@ type AuthRouter struct {
 }
 
 func (n *AuthRouter) Init() {
+	db.GetConection().AutoMigrate(api.SysUser{})
 	n.Gin.POST("/login", n.Login)
 	n.Gin.POST("/check_auth", n.CheckAuth)
 	n.Gin.POST("/register/:data", n.Register_system_user)
