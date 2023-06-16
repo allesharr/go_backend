@@ -1,14 +1,13 @@
 package routers
 
 import (
+	"encoding/json"
 	"fmt"
 	"go_backend/db"
-	"go_backend/logger"
 	"go_backend/prop_manager"
 	"go_backend/stats"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,43 +20,73 @@ type Aukt struct {
 }
 
 type Aukt_Table_Row struct {
-	Number     string    `gorm:"column:number primaryKey" json:"number"`
+	Number     string    `gorm:"primaryKey;column:number" json:"number"`
 	DataOfSet  time.Time `gorm:"column:dataofset json:"dataofset"`
 	Seller     string    `gorm:"column:seller" json:"seller"`
 	Object     string    `gorm:"column:object" json:"object"`
-	WhoGaveMax string    `gorm:"column:whogavemax" json:"WhoGaveMax"`
+	WhoGaveMax string    `gorm:"column:whogavemax" json:"whogavemax"`
 	Money      int       `gorm:"column:money" json:"money"`
-	TimeToOut  int       `gorm:"column:timetoout" json:"timeToOut"`
+	TimeToOut  int       `gorm:"column:timetoout" json:"tto"`
 	IsActive   bool      `gorm:"column:isactive" json:"isActive"`
 }
 
-var timer Time
+var timer *time.Timer
 
 func (Aukt_Table_Row) TableName() string {
 	return "aukst"
 }
 
 // var rows []Aukt_Table_Row = make([]Aukt_Table_Row, 0)
-
+// there is no goroutine exit
 func (n *Aukt) Init() {
 	db.GetConection().AutoMigrate(&Aukt_Table_Row{})
 	n.Gin.GET("/get_table_data", n.Aukt_All)
 	n.Gin.GET("/aukt/:id", n.Aukt_By_ID)
+	n.Gin.POST("/update", n.Update_Coast)
+	n.Gin.POST("/set_lot", n.Set_Lot)
+	ticker := time.NewTicker(time.Minute)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				n.TimeOut()
+			}
+		}
+	}()
 
-	timer := time.NewTimer(time.Minute)
-	select {
-	case <-timer.C:
-		n.TimeOut()
-		timer = time.NewTimer(time.Minute)
+}
+
+func (n *Aukt) Set_Lot(c *gin.Context) {
+	data := Aukt_Table_Row{}
+	b, err := c.GetRawData()
+	if err != nil {
+		fmt.Println("Post data is not correct")
 	}
+	json.Unmarshal(b, &data)
+	// fmt.Println("My collected data is ", data)
+	// fmt.Println("object", data.Object, "seller", data.Seller, "money", data.Money, "time ot out", data.TimeToOut)
+	number := strconv.Itoa(int(time.Now().Unix()))
+	date := time.Now()
+	data.Number = number
+	data.DataOfSet = date
+	data.IsActive = true
 
+	db.GetConection().Create(&data)
+
+	// fmt.Println("inofrmation ", info)
 }
 
 func (n *Aukt) Aukt_All(c *gin.Context) {
 	var current_rows []Aukt_Table_Row
 	// db.GetConection().Model(&api.SysUser{}).Where("id = ? AND session_key = ?", requestObject.ID, requestObject.SessionKey).Limit(1).Find(&sysUserList)
-	db.GetConection().Model(&Aukt_Table_Row{}).Select("number, seller, object, money, whogavemax").Where("isactive = ?", 1).Find(&current_rows)
+	// db.GetConection().Model(&Aukt_Table_Row{}).Select("number, seller, object, money, whogavemax").Where("isactive = ?", 1).Find(&current_rows)
+
+	db.GetConection().Model(&Aukt_Table_Row{}).Select("*").Where("isactive = ?", 1).Find(&current_rows)
 	fmt.Println(current_rows)
+	// for_send, err := json.Marshal(current_rows)
+	// if err != nil {
+	// 	logger.Logger.Log(logger.Logger{}, logger.INFO, "Cannot marshla all table data")
+	// }
 	c.JSON(http.StatusOK, current_rows)
 }
 
@@ -73,36 +102,21 @@ func (n *Aukt) Aukt_By_ID(c *gin.Context) {
 // needs localstorage.username and new Coast
 // seller and object to find a nessesary object in the table
 func (n *Aukt) Update_Coast(c *gin.Context) {
-	newData, ok := c.Params.Get("data")
-	mass := strings.Split(newData, ";")
-	newMoney, err := strconv.Atoi(mass[0])
+	toUpdate := Aukt_Table_Row{}
+	b, err := c.GetRawData()
 	if err != nil {
-		logger.Logger.Log(logger.Logger{}, logger.INFO, "Cannot execute new money from request to update cost")
+		fmt.Println("Post data is not correct")
 	}
-	seller := mass[1]
-	object := mass[2]
-	whogavemax := mass[3]
-	localname := mass[4]
+	json.Unmarshal(b, &toUpdate)
+	fmt.Println("My collected data is ", toUpdate)
+	fmt.Println("number", toUpdate.Number, "whoGaveMax", toUpdate.WhoGaveMax, "money", toUpdate.Money)
 
-	//Seller can't gave new Coast
-	if localname == seller {
-		c.JSON(http.StatusForbidden, "")
-	}
-	if !ok {
-		c.JSON(http.StatusNotFound, "")
-	}
-	toFind := Aukt_Table_Row{
-		Seller:   seller,
-		Object:   object,
-		IsActive: true,
-	}
-	db.GetConection().First(&toFind)
-	if toFind.Money != 0 {
-		toFind.Money = newMoney
-		toFind.WhoGaveMax = whogavemax
-	}
-	db.GetConection().Save(&toFind)
-	c.JSON(http.StatusAccepted, "")
+	// number := toUpdate.Number
+	whogavemax := toUpdate.WhoGaveMax
+	money := toUpdate.Money
+
+	db.GetConection().Model(&toUpdate).Update("whogavemax", whogavemax)
+	db.GetConection().Model(&toUpdate).Update("money", money)
 
 }
 
@@ -116,17 +130,20 @@ func (n *Aukt) AddDataToTable() {
 // cals every minite if timeofset + timeToOut > Max -> set isActive to false
 // good for small database
 func (n *Aukt) TimeOut() {
+	fmt.Println("Tick")
 	var current_rows []Aukt_Table_Row
 	db.GetConection().Model(&Aukt_Table_Row{}).Select("dataofset,timetoout,isactive").Where("isactive = ?", 1).Find(&current_rows)
-	fmt.Println(current_rows)
+	// fmt.Println(current_rows)
 
 	for _, elem := range current_rows {
 		dateNow := time.Now()
 		//calculate sub
 		if dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut) {
 			elem.IsActive = false
+			db.
 		}
 	}
-	db.GetConection().Save(&current_rows)
+	// db.GetConection().Save(&current_rows)
 
+	// timer = time.NewTimer(time.Minute)
 }
