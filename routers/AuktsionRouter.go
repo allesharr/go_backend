@@ -132,15 +132,16 @@ func (n *Aukt) AddDataToTable() {
 func (n *Aukt) TimeOut() {
 	fmt.Println("Tick")
 	var current_rows []Aukt_Table_Row
-	db.GetConection().Model(&Aukt_Table_Row{}).Select("dataofset,timetoout,isactive").Where("isactive = ?", 1).Find(&current_rows)
-	// fmt.Println(current_rows)
+	db.GetConection().Model(&Aukt_Table_Row{}).Select("*").Where("isactive = ?", 1).Find(&current_rows)
+	fmt.Println(current_rows)
 
 	for _, elem := range current_rows {
 		dateNow := time.Now()
 		//calculate sub
 		if dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut) {
+			fmt.Println(dateNow.Sub(elem.DataOfSet))
 			elem.IsActive = false
-			db.
+			db.GetConection().Model(Aukt_Table_Row{Number: elem.Number}).Update("isactive", elem.IsActive)
 		}
 	}
 	// db.GetConection().Save(&current_rows)
