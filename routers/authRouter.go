@@ -27,6 +27,7 @@ func (n *AuthRouter) Init() {
 	n.Gin.POST("/login", n.Login)
 	n.Gin.POST("/check_auth", n.CheckAuth)
 	n.Gin.POST("/register/:data", n.Register_system_user)
+	n.Gin.GET("/check_admin_status/:session_key", n.CheckAdmin)
 }
 
 func (n *AuthRouter) AuthMiddleware(c *gin.Context) {
@@ -152,6 +153,7 @@ func (n *AuthRouter) Register_system_user(c *gin.Context) {
 			db.GetConection().Create(&api.SysUser{
 				Login:        login,
 				PasswordHash: hash,
+				IsAdmin:      false,
 			})
 			c.JSON(http.StatusOK, api.ResponseMessage{Message: "Успешная регистрация пользователя"})
 
@@ -161,4 +163,12 @@ func (n *AuthRouter) Register_system_user(c *gin.Context) {
 		fmt.Println(user)
 
 	}
+}
+func (n *AuthRouter) CheckAdmin(c *gin.Context) {
+
+	key := c.Param("session_key")
+	user := api.SysUser{}
+	db.GetConection().Model(api.SysUser{}).Select("is_admin").Where("session_key = ?", key).Find(&user)
+	c.JSON(http.StatusOK, user)
+
 }

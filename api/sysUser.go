@@ -16,6 +16,7 @@ type SysUser struct {
 	PasswordHash        string      `gorm:"column:password_hash" json:"password_hash"`
 	SessionKey          null.String `gorm:"column:session_key" json:"session_key"`
 	SessionCreationDate *time.Time  `gorm:"column:session_creation_date" json:"session_creation_date"`
+	IsAdmin             bool        `gorm:"column:is_admin" json:"is_admin"`
 }
 
 func (SysUser) TableName() string {
