@@ -134,12 +134,16 @@ func (n *Aukt) TimeOut() {
 	var current_rows []Aukt_Table_Row
 	db.GetConection().Model(&Aukt_Table_Row{}).Select("*").Where("isactive = ?", 1).Find(&current_rows)
 	fmt.Println(current_rows)
-
+	param := 1000000000 //get seconds from micro
 	for _, elem := range current_rows {
+
 		dateNow := time.Now()
+		// fmt.Println("Dataset duration", dateNow.Sub(elem.DataOfSet))
+		// fmt.Println("time to out", time.Duration(elem.TimeToOut*param)) //1000000 to from micro to seconds
+		// fmt.Println(dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut*param))
+
 		//calculate sub
-		if dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut) {
-			fmt.Println(dateNow.Sub(elem.DataOfSet))
+		if dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut*param) {
 			elem.IsActive = false
 			db.GetConection().Model(Aukt_Table_Row{Number: elem.Number}).Update("isactive", elem.IsActive)
 		}
