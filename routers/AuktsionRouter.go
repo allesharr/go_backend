@@ -36,7 +36,7 @@ func (Aukt_Table_Row) TableName() string {
 	return "aukst"
 }
 
-// var rows []Aukt_Table_Row = make([]Aukt_Table_Row, 0)
+
 // there is no goroutine exit
 func (n *Aukt) Init() {
 	db.GetConection().AutoMigrate(&Aukt_Table_Row{})
@@ -63,8 +63,6 @@ func (n *Aukt) Set_Lot(c *gin.Context) {
 		fmt.Println("Post data is not correct")
 	}
 	json.Unmarshal(b, &data)
-	// fmt.Println("My collected data is ", data)
-	// fmt.Println("object", data.Object, "seller", data.Seller, "money", data.Money, "time ot out", data.TimeToOut)
 	number := strconv.Itoa(int(time.Now().Unix()))
 	date := time.Now()
 	data.Number = number
@@ -73,20 +71,13 @@ func (n *Aukt) Set_Lot(c *gin.Context) {
 
 	db.GetConection().Create(&data)
 
-	// fmt.Println("inofrmation ", info)
 }
 
 func (n *Aukt) Aukt_All(c *gin.Context) {
 	var current_rows []Aukt_Table_Row
-	// db.GetConection().Model(&api.SysUser{}).Where("id = ? AND session_key = ?", requestObject.ID, requestObject.SessionKey).Limit(1).Find(&sysUserList)
-	// db.GetConection().Model(&Aukt_Table_Row{}).Select("number, seller, object, money, whogavemax").Where("isactive = ?", 1).Find(&current_rows)
-
+	
 	db.GetConection().Model(&Aukt_Table_Row{}).Select("*").Where("isactive = ?", 1).Find(&current_rows)
 	fmt.Println(current_rows)
-	// for_send, err := json.Marshal(current_rows)
-	// if err != nil {
-	// 	logger.Logger.Log(logger.Logger{}, logger.INFO, "Cannot marshla all table data")
-	// }
 	c.JSON(http.StatusOK, current_rows)
 }
 
@@ -111,7 +102,6 @@ func (n *Aukt) Update_Coast(c *gin.Context) {
 	fmt.Println("My collected data is ", toUpdate)
 	fmt.Println("number", toUpdate.Number, "whoGaveMax", toUpdate.WhoGaveMax, "money", toUpdate.Money)
 
-	// number := toUpdate.Number
 	whogavemax := toUpdate.WhoGaveMax
 	money := toUpdate.Money
 
@@ -138,9 +128,6 @@ func (n *Aukt) TimeOut() {
 	for _, elem := range current_rows {
 
 		dateNow := time.Now()
-		// fmt.Println("Dataset duration", dateNow.Sub(elem.DataOfSet))
-		// fmt.Println("time to out", time.Duration(elem.TimeToOut*param)) //1000000 to from micro to seconds
-		// fmt.Println(dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut*param))
 
 		//calculate sub
 		if dateNow.Sub(elem.DataOfSet) > time.Duration(elem.TimeToOut*param) {
@@ -148,7 +135,5 @@ func (n *Aukt) TimeOut() {
 			db.GetConection().Model(Aukt_Table_Row{Number: elem.Number}).Update("isactive", elem.IsActive)
 		}
 	}
-	// db.GetConection().Save(&current_rows)
 
-	// timer = time.NewTimer(time.Minute)
 }
